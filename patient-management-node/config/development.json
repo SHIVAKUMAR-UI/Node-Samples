@@ -1,0 +1,6 @@
+{
+    "name": "Patient Management App",
+    "mail": {
+        "server": "dev-mail-server"
+    }
+}
