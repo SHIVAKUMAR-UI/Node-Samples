@@ -6,10 +6,23 @@ const helmet = require("helmet"); // Middle-ware For setting headers for securit
 const Joi = require("joi"); // Middle-ware For validation
 const logger = require("./logger"); // Custom Middle-ware for logging
 const authenticate = require("./authentication"); // Custom Middle-ware for authentication
+// const dbConnection = require("./dbconnection"); // Database connection setup
 const express = require("express"); // For creating Restful API
 const usersRoute = require("./routes/users");
 const templateRoute = require("./routes/templates");
 const app = express();
+const mongodb = require("mongoose");
+const cors = require("cors");
+
+// Mongo db coonection
+mongodb
+  .connect("mongodb://localhost/patientmanagement")
+  .then(() => {
+    startUpDebugger(`Connected to MongoDb`);
+  })
+  .catch(() => {
+    startUpDebugger(`Unable to connect to MongoDb`);
+  });
 
 // nodemon app.js to run the application in command prompt
 
@@ -30,14 +43,16 @@ if (app.get("env") === "development") {
 
 app.use(logger);
 app.use(authenticate);
+// app.use(dbConnection);
 
 startUpDebugger("Application Name: ", config.get("name"));
 startUpDebugger("Mail Server: ", config.get("mail.server"));
 
 dbDebugger("Db Enabled");
-
+app.use(cors());
 app.use('/', templateRoute);
 app.use('/api/users', usersRoute);
+
 
 
 

@@ -1,85 +1,80 @@
 const startUpDebugger = require("debug")("app:startup"); // To enable logs in debug mode command export DEBUG=app:startup
-const express = require('express');
+const express = require("express");
 const Joi = require("joi"); // Middle-ware For validation
 const userRoutes = express.Router();
-
-
-
-const users = [
-    { id: 1, name: "user 1" },
-    { id: 2, name: "user 2" },
-    { id: 3, name: "user 3" }
-  ];
+const { User, validate } = require("../model/user");
 
 // /api/user/101?sortBy=name
-userRoutes.get("/:id", (req, res) => {
-    startUpDebugger("params ", req.params);
-    startUpDebugger("query ", req.query);
-    // res.send([req.params, req.query]);
-    const user = users.find(user => {
-      return user.id == req.params.id;
-    });
-    if (!user) res.status(404).send("Requested Id not found");
-    res.send(user);
+userRoutes.get("/:id", async (req, res) => {
+  startUpDebugger("params ", req.params);
+  startUpDebugger("query ", req.query);
+  // res.send([req.params, req.query]);
+
+  const user = await User.findById(id).select({
+    firstName: 1,
+    middleName: 1,
+    lastName: 1,
+    contactNumber: 1,
+    email: 1,
+    suite: 1,
+    country: 1,
+    province: 1,
+    zipcode: 1
   });
-  
-  // Get All Users
-  userRoutes.get("/", (req, res) => {
-    res.send(users);
-  });
-  
-  userRoutes.post("/", (req, res) => {
-    startUpDebugger("body", req.body);
-    const { error } = validateUser(req.body);
-    if (error) {
-      return res.status(400).send(error.details[0].message);
-    }
-    const user = {
-      id: users.length + 1,
-      name: req.body.name
-    };
-    users.push(user);
-    res.send(user);
-  });
-  
-  // Update User
-  userRoutes.put("//:id", (req, res) => {
-    const { error } = validateUser(req.body);
-    if (error) {
-      return res.status(400).send(error.details[0].message);
-    }
-  
-    const user = users.find(user => {
-      return user.id == parseInt(req.params.id);
-    });
-  
-    if (!user) res.status(404).send("No User with given Id");
-  
-    user.name = req.body.name;
-    res.send(user);
-  });
-  
-  // Delete user
-  userRoutes.delete("//:id", (req, res) => {
-    startUpDebugger("id", req.params.id);
-    const userIndex = users.findIndex(user => {
-      return user.id === parseInt(req.params.id);
-    });
-  
-    if (userIndex === -1) return res.status(404).send("No User with given Id");
-  
-    users.splice(userIndex, 1);
-    res.send(users);
-  });
-  
-  function validateUser(user) {
-    const userSchema = {
-      id: Joi.number(),
-      name: Joi.string()
-        .min(3)
-        .required()
-    };
-    return Joi.validate(user, userSchema);
+
+  if (!user) res.status(404).send("Requested Id not found");
+  res.send(user);
+});
+
+// Get All Users
+userRoutes.get("/", async (req, res) => {
+  console.log('Get All Users');
+  const users = await User.find();
+  res.send(users);
+});
+
+userRoutes.post("/", async (req, res) => {
+  startUpDebugger("body", req.body);
+  const { error } = validate(req.body);
+  if (error) {
+    return res.status(400).send(error.details[0].message);
   }
 
-  module.exports = userRoutes;
+  const user = new User(req.body);
+  const result = await user.save();
+
+  res.send(result);
+});
+
+// Update User
+userRoutes.put("//:id", async (req, res) => {
+  const { error } = validate(req.body);
+  if (error) {
+    return res.status(400).send(error.details[0].message);
+  }
+
+  const updatedUser = await User.update(
+    { _id: id },
+    {
+      $set: {
+        firstName: user.firstName
+      }
+    }
+  );
+
+  if (!updatedUser) res.status(404).send("No User with given Id");
+
+  res.send(updatedUser);
+});
+
+// Delete user
+userRoutes.delete("//:id", async (req, res) => {
+  startUpDebugger("id", req.params.id);
+  const deletedUser = await User.findByIdAndRemove(id);
+
+  if (!deletedUser) return res.status(404).send("No User with given Id");
+
+  res.send(deletedUser);
+});
+
+module.exports = userRoutes;
